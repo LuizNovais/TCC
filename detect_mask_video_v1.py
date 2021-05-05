@@ -16,6 +16,7 @@ import os
 import serial
 import time
 import threading
+import concurrent.futures
 from plyer import notification
 
 def detect_and_predict_mask(frame, faceNet, maskNet):
@@ -132,20 +133,25 @@ def enviainfo():
     return(temps, oxis)
 def oxige():
 	global oxix
+	global ox1
 	oxix=[]
 	recebido=enviainfo()
-	oxix.append(recebido[1:2])
-	print(oxix)
-	ox=str(oxix[5])
-	return(ox)
+	oxix.append(recebido[1])
+	ox = oxix[0]
+	ox1 = str(ox[5])
+	print(ox1)
+	return(ox1)
 def tempe():
 	global tempx
+	global temp1
 	tempx=[]
 	recebido=enviainfo()
-	tempx.append(recebido[:1])
-	print(tempx)
-	tx=str(tempx[5])
-	return(tx)
+	tempx.append(recebido[0])
+	temp = tempx[0]
+	temp1 = str(temp[5])
+	print(temp1)
+	return(temp1)
+
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-f", "--face", type=str,
@@ -182,6 +188,10 @@ while True:
 	frame = imutils.resize(frame, width=800)
 	global tx
 	global ox
+	global ox1
+	global temp1
+	ox4=[]
+	temp4=[]
 
 	# detect faces in the frame and determine if they are wearing a
 	# face mask or not
@@ -199,15 +209,24 @@ while True:
 		label = "Com Mascara" if mask > withoutMask else "Sem Mascara"
 		color = (0, 255, 0) if label == "Com Mascara" else (0, 0, 255)
 		if label == "Com Mascara":
-		threading.Thread(target=oxige).start()
-		threading.Thread(target=tempe).start()
+			threading.Thread(target=oxige)
+
+
+			with concurrent.futures.ThreadPoolExecutor() as executor:
+				future = executor.submit(oxige)
+				ox2=future.result()
+				print(ox2)
+			with concurrent.futures.ThreadPoolExecutor() as executor:
+				future = executor.submit(tempe)
+				temp2=future.result()
+				print(temp2)
 
 		# include the probability in the label
 		label = "{}: {:.2f}%".format(label, max(mask, withoutMask) * 100)
 		org = (500,485)
-		label1 = ("Oxigenacao=  %.2s" %ox)
+		label1 = ("Oxigenacao =  {.2s}%" )
 		org1 = (500, 515)
-		label2 = ("Temperatura  %.2s=" %tx)
+		label2 = ("Temperatura =  {.2s}%")
 		org2 = (500, 545)
 
 		# display the label and bounding box rectangle on the output
