@@ -3,84 +3,67 @@
 #include <SparkFunMLX90614.h>     // Biblioeca do Sensor Infravermelho
 #include "MAX30100_PulseOximeter.h" // Biblioteca Oximetro
 
-#define REPORTING_PERIOD_MS     1000 //oxi
+#define REPORTING_PERIOD_MS     1000
 
-IRTherm temperatura; //temp
+IRTherm temperatura; // Sensor de temperatura
 
-PulseOximeter pox; //oxi
-uint32_t tsLastReport = 0; //oxi
-char carac;
+PulseOximeter pox; // Sensor de oxigenação
+uint32_t tsLastReport = 0;
+char carac; 
 int count = 0;
 
-void onBeatDetected()
-{
-    Serial.println("Beat!");
-}
-
 void setup() {
-  Serial.begin(115200);
-  Serial.setTimeout(1);
+    Serial.begin(115200);
+    Serial.setTimeout(1);
 }
 
 void setupterm(){
-  temperatura.begin(0x5A);         // Inicia o Sensor no endereço 0x5A
-  temperatura.setUnit(TEMP_C);     // Define a temperatura em Celsius
-  //Serial.print("Termometro inicializado\n");
+    temperatura.begin(0x5A);                                      // Inicia o Sensor no endereço 0x5A
+    temperatura.setUnit(TEMP_C);                                  // Define a temperatura em Celsius
 }
 
 void setupoxi(){
- pox.begin();
-  if (!pox.begin()) {
-        Serial.println("FAILED");
+    pox.begin();
+    if (!pox.begin()) {
+        Serial.println("FAILED"); //Testa a comunicação com o oximetro.
         for(;;);
-  } else {
-      //Serial.println("SUCCESS\n");
-  }
- // pox.setOnBeatDetectedCallback(onBeatDetected);
-  //Serial.print("Oximetro inicilizado\n");
+    } 
 }
 
 void loop() {
-  delay(100);
-  if (Serial.available() > 0){
-    carac = Serial.read();  
-    if (carac == 't'){
-      setupterm();
-      Serial.println(carac);
-      if (temperatura.read())  {
-      //Serial.println("Objeto: ");
-      Serial.println(temperatura.object());
-      //Serial.println("Ambiente: ");
-      //Serial.println(temperatura.ambient());
-      Serial.println('f');
-      Serial.flush();
-      delay(1000);                   // Aguarda 2 segundos
-      carac = 'n';
-      }
-    }
-    if (carac == 'o'){
-      setupoxi(); 
-      Serial.println(carac); 
-      // Asynchronously dump heart rate and oxidation levels to the serial
-      // For both, a value of 0 means "invalid"
-      while (count < 10){
-        if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
-           // Serial.println("Heart rate:");
-           // Serial.println(pox.getHeartRate());
-           // Serial.println("SpO2:");
-            Serial.println(pox.getSpO2());
-            //Serial.flush();
-            count++;
-            tsLastReport = millis();
-       //     Serial.println(values[count]);  
+    delay(100);                                                   // Aguarda 0,1 segundos
+    if (Serial.available() > 0){                                  // Se a comunicação serial estiver disponível
+        carac = Serial.read();                                      // Realiza leitura do barramento serial
+        if (carac == 't'){                                          // Se o o caractere lido for t
+            setupterm();                                                // Inicia o setup do sensor de temperatura
+            Serial.println(carac);                                      // Envia o caracter recebido 
+            while (count < 10){                                         // Loop para enviar 10 amostras 
+                if (temperatura.read())  {                              // Solicita a leitura de temperatura ao termômetro
+                  Serial.println(temperatura.object());                 // Envia a temperatura lida em graus Celsius
+                  delay(100);                                           // Aguarda 0,1 segundos
+                  count++;                                              // Incremento da variável iterativa
+                }
+            }
+            Serial.println('f');                                        // Envia o caractere f para informar que finalizou o envio.
+            Serial.flush();                                             // Função que garante que a informação se mantenha no barramento até ser enviada completamente.
+            delay(1000);                                                // Aguarda 1 segundo
+            carac = 'n';                                                // Seta a variável com outro caractere
+            }
         }
-            pox.update();
-      }
-      
-    count = 0;
-    carac = 'n';
-    Serial.println('f');
-    
+        if (carac == 'o'){                                              // Se o o caractere lido for o
+            setupoxi();                                                 // Inicia o setup do sensor de oxigenação
+            Serial.println(carac); 
+            while (count < 10){                                         // Loop para enviar 10 amostras
+                if (millis() - tsLastReport > REPORTING_PERIOD_MS) {    // Se o tempo que passou desde o início de execução menos o tempo do último envio for maior que 1 segundo
+                    Serial.println(pox.getSpO2());                      // Envia a oxigenação em porcentagem
+                    count++;                                            // Incremento da variável iterativa
+                    tsLastReport = millis();                            // Define o tempo do último envio, como o tempo atual.
+                }
+                pox.update();                                           // Solicita nova leitura da oxigenação.
+            }
+            count = 0;                                                      // Zera a variável de iteração.
+            carac = 'n';                                                    // Seta a variável com outro caractere
+            Serial.println('f');                                            // Envia o caractere f para informar que finalizou o envio.
+        }
     }
-  }
 }
