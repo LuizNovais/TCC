@@ -112,7 +112,7 @@ def getinfo():								# Função que abre comunicação serial com o microcontro
 		time.sleep(1)						# Aguarda 1 segundos, o oximetro necessita de um tempo maior para atualizar as medições
 	arduino.close()							# Encerra a comunicação serial com o microcontrolador
 	return(temp_l, oxis)						# Retorna as duas listas como resultado da função
-def oxige():								# Função que trata as medições recebidas e prepara para exibição
+def measures():								# Função que trata as medições recebidas e prepara para exibição
 	global ox1							# Variável que recebe o valor de oxigenação a ser exibido 
 	global ox2							# Lista de medições confiáveis de oxigenação
 	global temp1							# Variável que recebe o valor de temperatura a ser exibido
@@ -188,28 +188,24 @@ while True:
 
 		# determine the class label and color we'll use to draw
 		# the bounding box and text
-		label = "Com Mascara" if mask > withoutMask else "Sem Mascara"
-		color = (0, 255, 0) if label == "Com Mascara" else (0, 0, 255)
-		if label == "Sem Mascara":
-			label6 = ("Por favor, coloque a mascara")
+		label = "Com Mascara" if mask > withoutMask else "Sem Mascara"					# Classifica se o rosto identificado está de mascara
+		color = (0, 255, 0) if label == "Com Mascara" else (0, 0, 255)					# Altera a cor da frase
+		if label == "Sem Mascara":									
+			label6 = ("Por favor, coloque a mascara")						# Se o usuário estiver sem máscara, solicita que coloque
 			org6 = (500, 400)
 			cv2.putText(frame, label6, org6,
 						cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
-		if label != old_label and label == "Com Mascara":
-			threading.Thread(target=oxige).start()
-			print(ox1)
-			print(temp1)
+		if label != old_label and label == "Com Mascara":						# Se há uma alteração no estado de Sem Máscara para Com Máscara
+			threading.Thread(target=measures).start()						# Executa a função que solicita as medidas
 		# include the probability in the label
-		if ox1 != old_ox1:
-			#label = "{}: {:.2f}%".format(label, max(mask, withoutMask) * 100)
-			org = (500,485)
-			label1 = (f"Oxigenacao = {ox1}")
-			org1 = (500, 515)
-			label2 = (f"Temperatura = {temp1}")
+		if ox1 != old_ox1:										# Quando as novas medidas são atualizadas
+			label1 = (f"Oxigenacao = {ox1}")							# É informado na tela o valor de oxigenação 
+			org1 = (500, 515)									
+			label2 = (f"Temperatura = {temp1}")							# Temperatura
 			org2 = (500, 545)
-			label4 = ("Entrada autorizada")
+			label4 = ("Entrada autorizada")								# Entrada autorizada
 			org4 = (500, 400)
-			label5 = ("Entrada nao autorizada")
+			label5 = ("Entrada nao autorizada")							# Ou não autorizada
 			org5 = (500, 400)
 			cv2.putText(frame, label, org,
 						cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
@@ -217,28 +213,26 @@ while True:
 						cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
 			cv2.putText(frame, label2, org2,
 						cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
-			print("entrei no if")
-			print(float(ox1))
-			print(float(temp1))
-			if label == "Com Mascara" and float(temp1) < 37.5 and float(ox1) > 89:
+			
+			if label == "Com Mascara" and float(temp1) < 37.5 and float(ox1) > 89:			# Se o usuário está de máscara, possui temperatura e oxigenação dentro da faixa aceitável
 				cv2.putText(frame, label4, org4,
-							cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
+							cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)		# Exibe entrada autorizada
 			else:
 				cv2.putText(frame, label5, org5,
-							cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
+							cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)		# Se não, exibe entrada não autorizada
 			cv2.imshow("Frame", frame)
 			key = cv2.waitKey(1) & 0xFF
 			c =+ 1
 			if c > 5 or label != old_label:
 				old_ox1 = ox1
-		else:
-			label3 = ("Coloque o dedo no local indicado")
+		else:												# Enquanto as medidas não são atualizadas
+			label3 = ("Coloque o dedo no local indicado")						# Solicita que o usuário posicione o dedo
 			org3 = (500, 485)
-			cv2.putText(frame, label3, org3,
+			cv2.putText(frame, label3, org3,	
 						cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
 			cv2.imshow("Frame", frame)
 			key = cv2.waitKey(1) & 0xFF
-		old_label = label
+		old_label = label										
 		# display the label and bounding box rectangle on the output
 		# frame
 
