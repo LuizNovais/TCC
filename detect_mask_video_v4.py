@@ -80,69 +80,60 @@ def detect_and_predict_mask(frame, faceNet, maskNet):
 	# return a 2-tuple of the face locations and their corresponding
 	# locations
 	return (locs, preds)
-def enviainfo():
-	c = 0
-	strdata = ''
-	temps = []
-	oxis = []
-	strdata = ''
-	arduinoData = serial.Serial('COM3', 115200, timeout=.1)
-
-	while strdata != 't':
-		arduinoData.write(bytes('t', 'utf-8'))
-		print("t enviado")
-		time.sleep(0.5)
-		data = arduinoData.readline()
-		strdata = data.rstrip().decode('utf-8')
-		print(strdata)
-		time.sleep(0.5)
-	print('Saiu do envio de t')
-	while strdata != 'f':
-		data = arduinoData.readline()
-		strdata = data.rstrip().decode('utf-8')
-		time.sleep(0.1)
-		if strdata != 'f': temps.append(strdata)
-		print(strdata)
-	print('saiu da leitura de t')
-	time.sleep(0.5)
-	while strdata != 'o':
-		arduinoData.write(bytes('o', 'utf-8'))
-		time.sleep(0.5)
-		data = arduinoData.readline()
-		strdata = data.rstrip().decode('utf-8')
-		print(strdata)
-		time.sleep(0.5)
-		print('saiu do envio de o')
-	while (strdata != 'f'):
-		data = arduinoData.readline()
-		strdata = data.rstrip().decode('utf-8')
-		if strdata != 'f': oxis.append(strdata)
-		print(strdata)
-		time.sleep(1)
-	arduinoData.close()
-	return(temps, oxis)
-def oxige():
-	global ox1
-	global ox2
-	global temp1
-	global temp2
-	oxix=[]
-	tempx=[]
-	recebido=enviainfo()
-	oxix.append(recebido[1])
-	ox = oxix[0]
-	for i in ox:
-		if float(i) > 10 and float(i) < 101:
+def getinfo():								# Função que abre comunicação serial com o microcontrolador e recebe as medições
+	c = 0								# Variável iterativa
+	str_data = ''							# String que recebe as medições uma a uma na leitura da porta serial
+	temp_l = []							# Lista que recebe as 10 medições de temperatura.
+	oxi_l = []							# Lista que recebe as 10 medições de oxigenação.
+	arduino = serial.Serial('COM3', 115200, timeout=.1)		# Variável que inicia a comunicação serial com o microcontrolador, como parâmetros:
+									# 'COM3': Porta USB que o microcontrolador está conectado; 115200: Baud Rate
+	while str_data != 't':						# Loop que envia o caracter t ao microcontrolador solicitando as medições de temperatura
+		arduino.write(bytes('t', 'utf-8'))			# Escreve o caractere t na porta serial
+		time.sleep(0.5)						# Aguarda 0,5 segundos
+		data = arduino.readline()				# Lê o conteúdo da porta serial e aloca na variável data
+		str_data = data.rstrip().decode('utf-8')		# Decodifica o dado hexadecimal e aloca na variável str_data 
+		time.sleep(0.5)						# O programa fica repetindo o envio de t, até receber do microcontrolador um t como confirmação de que está pronto para o envio das medições
+	while str_data != 'f':						# Loop para leitura e arquivo das medições, até que receba o caractere f que sinaliza o fim do envio de medições
+		data = arduino.readline()				# Lê o conteúdo da porta serial e aloca na variável data
+		str_data = data.rstrip().decode('utf-8')		# Decodifica o dado hexadecimal e aloca na variável str_data 
+		if str_data != 'f': temp_l.append(str_data)		# Guarda o valor recebido em strdata como um novo item na lista temp_l
+		time.sleep(0.1)						# Aguarda 0,1 segundos
+	time.sleep(0.5)							# Aguarda 0,5 segundos
+	while str_data != 'o':						# Loop que envia o caracter o ao microcontrolador solicitando as medições de oxigenação
+		arduino.write(bytes('o', 'utf-8'))			# Escreve o caractere o na porta serial
+		time.sleep(0.5)						# Aguarda 0,5 segundos
+		data = arduino.readline()				# Lê o conteúdo da porta serial e aloca na variável data
+		str_data = data.rstrip().decode('utf-8')		# Decodifica o dado hexadecimal e aloca na variável str_data 
+		time.sleep(0.5)						# O programa fica repetindo o envio de o, até receber do microcontrolador um o como confirmação de que está pronto para o envio das medições
+	while (str_data != 'f'):					# Loop para leitura e arquivo das medições, até que receba o caractere f que sinaliza o fim do envio de medições
+		data = arduino.readline()				# Lê o conteúdo da porta serial e aloca na variável data
+		str_data = data.rstrip().decode('utf-8')		# Decodifica o dado hexadecimal e aloca na variável str_data 
+		if str_data != 'f': oxi_l.append(str_data)		# Guarda o valor recebido em strdata como um novo item na lista temp_l
+		time.sleep(1)						# Aguarda 1 segundos, o oximetro necessita de um tempo maior para atualizar as medições
+	arduino.close()							# Encerra a comunicação serial com o microcontrolador
+	return(temp_l, oxis)						# Retorna as duas listas como resultado da função
+def oxige():								# Função que trata as medições recebidas e prepara para exibição
+	global ox1							# Variável que recebe o valor de oxigenação a ser exibido 
+	global ox2							# Lista de medições confiáveis de oxigenação
+	global temp1							# Variável que recebe o valor de temperatura a ser exibido
+	global temp2							# Lista de medições confiáveis de oxigenação
+	oxix=[]								# Variável local que recebe a lista de medições de oxigenação
+	tempx=[]							# Variável local que recebe a lista de medições de temperatura
+	double_list=getinfo()						# Chama a função getinfo() e aloca as duas listas com as medições na variáve double_list
+	oxix.append(double_list[1])					# Aloca a lista de medições de oxigenação na oxix
+	ox = oxix[0]							# Formatação da lista
+	for i in ox:							
+		if float(i) > 10 and float(i) < 101:			# Iteração para transformar os valores texto em numéricos e para ignorar valores abaixo de 10% e acima de 101%
 			ox2.append(i)
-	ox1 = str(statistics.mode(ox2))
-	tempx.append(recebido[0])
-	temp4 = tempx[0]
-	for i in temp4:
-		if float(i) > 10 and float(i) < 101:
+	ox1 = str(statistics.mode(ox2))					# Dos valores que estão na faixa selecionada, realiza a moda e aloca na variável ox1
+	tempx.append(double_list[0])					# Aloca a lista de medições de temperatura na tempx
+	temp = tempx[0]							# Formatação da lista
+	for i in temp:
+		if float(i) > 10 and float(i) < 101:			# Iteração para transformar os valores texto em numéricos e para ignorar valores abaixo de 10% e acima de 101%
 			temp2.append(i)
-	temp1 = str(statistics.mode(temp2))
+	temp1 = str(statistics.mode(temp2))				# Dos valores que estão na faixa selecionada, realiza a moda e aloca na variável ox1
 
-# construct the argument parser and parse the arguments
+# Inicialização das variáveis de controle e construção dos argumentos
 ox1="0"
 ox2=[]
 temp1="0"
